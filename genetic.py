@@ -3,7 +3,8 @@ from argparse import ArgumentParser
 from sys import exit
 from time import strftime, localtime
 from subprocess import call
-
+import math 
+import matplotlib.pyplot as plt
 
 parameter_settings = []
 extfit_settings = {}
@@ -19,7 +20,7 @@ def setup_arguments():
     parser.add_argument('input', help="Input file")
     # parser.add_argument('output', help="Output file")
     args = parser.parse_args()
-    print("Genetic Algorithm Tournament Script")
+    print("Genetic Algorithm Tournament Selection")
     print("Start: %s" % strftime("%d %b %Y %H:%M:%S %z\n", localtime()))
     # Set verbosity
     global verbose
@@ -126,11 +127,13 @@ def run():
 
 
 def internal_fitness(chromosome):
-    """Determine the fitness of a particular chromosome and return its fitness value"""
-    # Define a custom fitness function here!
-    score = ((chromosome[0] - 0.1) ** 2 + (chromosome[1] - 1.5) ** 2 + (chromosome[2] - 3.0) ** 2
-             + (chromosome[3] - 4.44) ** 2 + (chromosome[4] - 5.0) ** 2 + (chromosome[5] - 10.0) ** 2)
-    return score
+    if len(chromosome) < 6:
+        raise ValueError("Chromosome should have at least 6 elements")
+
+    return (1.0 + (chromosome[0] - 1.0) ** 2 * (1.0 - math.cos(2.0 * math.pi * (chromosome[0] - 1.0)))
+            + (chromosome[1] - 1.0) ** 2 * (1.0 - math.cos(2.0 * math.pi * (chromosome[1] - 1.0)))
+            + (chromosome[2] - 1.0) ** 2 * (1.0 - math.cos(2.0 * math.pi * (chromosome[2] - 1.0)))
+            + (chromosome[3] - 4.44) ** 2 + (chromosome[4] - 5.0) ** 2 + (chromosome[5] - 10.0) ** 2)
 
 
 def external_fitness(population):
