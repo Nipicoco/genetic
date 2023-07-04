@@ -1,247 +1,209 @@
-#       in loving memory of
-#
-#       population = [population[j] + Direcciones[direction[j]] if((1 <= population[j][0] + Direcciones[direction[j]][0] <=tam and 1 <= population[j][1] + Direcciones[direction[j]][1] <=tam) and not((population[j][0]) == tam) and comprobacion(np.add(population[j], Direcciones[direction[j]]), population)) else population[j] + Direcciones[4] for j in range(len(population))]
-#       </3 :(
-# 💥🍑👋💥
 import numpy as np
 import matplotlib.pyplot as plt
 import random
 
-Direcciones = [
-    [-1, 1],  # NOROESTE, Blue
-    [0, 1],  # NORTE, Green
-    [1, 1],  # NORESTE, Red
-    [-1, 0],  # OESTE, Cyan
-    [0, 0],  # NO MUEVE ESE POTO, Magenta
-    [1, 0],  # ESTE, Yellow
-    [-1, -1],  # SUROESTE, Black
-    [0, -1],  # SUR, Purple
-    [1, -1],  # SURESTE, Orange
-]
-Direcciones = np.array(Direcciones)
-Colors = [
-    "blue",
-    "green",
-    "red",
-    "cyan",
-    "magenta",
-    "yellow",
-    "black",
-    "purple",
-    "orange",
-]
+direcciones = np.array([
+    [-1, 1],  # Noroeste, Azul
+    [0, 1],   # Norte, Verde
+    [1, 1],   # Noreste, Rojo
+    [-1, 0],  # Oeste, Cian
+    [0, 0],   # Sin movimiento, Magenta
+    [1, 0],   # Este, Amarillo
+    [-1, -1], # Suroeste, Negro
+    [0, -1],  # Sur, Púrpura
+    [1, -1]   # Sureste, Naranja
+])
 
+colores =  ['blue', 'green', 'red', 'cyan', 'magenta', 'yellow', 'black', 'purple', 'orange']
 
-def Color(cromosoma):  # [0.8, 0.15, 0.009, 0.3, 0.1]
-    max = np.argmax(cromosoma)
-    return Colors[max]
+def obtener_color(cromosoma):
+    max_index = np.argmax(cromosoma)
+    return colores[max_index]
 
-
-def Cromosoma():
+def generar_cromosoma():
     return np.random.uniform(0, 1, 9)
 
+def normalizar_cromosoma(cromosoma):
+    suma_total = np.sum(cromosoma)
+    normalizado = cromosoma / suma_total
+    return normalizado
 
-def CromosomaNormalizada(cromosoma):
-    Suma = np.sum(cromosoma)
-    for i in range(len(cromosoma)):
-        cromosoma[i] = cromosoma[i] / Suma
-    return cromosoma
-
-
-def PuntosIniciales():
+def generar_puntos_iniciales():
     return int(np.random.uniform(1, tam * 0.8))
 
-
-class Individual:
-    def __init__(self, color, cromosoma, x, y):
-        self.cromosoma = CromosomaNormalizada(cromosoma)
-        self.color = Color(self.cromosoma)  # 'blue'
+class Individuo:
+    def __init__(self, cromosoma, x, y):
+        self.cromosoma = normalizar_cromosoma(cromosoma)
+        self.color = obtener_color(self.cromosoma)
         self.x = x
         self.y = y
         self.fitness = 0
         self.steps = 0
 
-    def evaluate_fitness(self, steps):
-        return 1 / steps if steps != 0 else 1
+    def evaluar_fitness(self, steps):
+        return 1 / steps if steps != 0 else 1 
 
-    def mutate(self):  # random.random = 0-1
-        if random.random() < mutation_rate:
-            index = random.randint(
-                0, len(self.cromosoma) - 1
-            )  # pick a random index of the chromosome?
-            # randomize said element chosen above
+    def mutar(self):
+        if random.random() < tasa_mutacion:
+            index = random.randint(0, len(self.cromosoma) - 1)
             self.cromosoma[index] = random.random()
-            self.cromosoma = CromosomaNormalizada(self.cromosoma)
-        return
+            self.cromosoma = normalizar_cromosoma(self.cromosoma)
 
+class Poblacion:
+    def __init__(self, tamaño):
+        self.individuos = []
+        self.finalizadores = []
+        posiciones_ocupadas = set()
 
-class Population:
-    def __init__(self, N):
-        self.individuals = []
-        self.finishers = []
-        occupied_positions = set()
+        for _ in range(tamaño):
+            x, y = generar_puntos_iniciales(), generar_puntos_iniciales()
 
-        for _ in range(N):
-            x, y = PuntosIniciales(), PuntosIniciales()
+            while (x, y) in posiciones_ocupadas:
+                x, y = generar_puntos_iniciales(), generar_puntos_iniciales()
 
-            # Generate new positions until we find an unoccupied one
-            while (x, y) in occupied_positions:
-                x, y = PuntosIniciales(), PuntosIniciales()
+            posiciones_ocupadas.add((x, y))
+            self.individuos.append(Individuo(cromosoma=generar_cromosoma(), x=x, y=y))
 
-            occupied_positions.add((x, y))
-            self.individuals.append(Individual(None, cromosoma=Cromosoma(), x=x, y=y))
+    def mover(self):
+        individuos_restantes = []
 
-    def move(self):
-        remaining_individuals = []
+        for individuo in self.individuos:
+            dirección = np.random.choice(range(len(direcciones)), p=individuo.cromosoma)
+            nueva_x = individuo.x + direcciones[dirección][0]
+            nueva_y = individuo.y + direcciones[dirección][1]
 
-        for individual in self.individuals:  # move
-            direccion = np.random.choice(
-                range(len(Direcciones)), p=individual.cromosoma
-            )
-            new_x = individual.x + Direcciones[direccion][0]  # [1,1]
-            new_y = individual.y + Direcciones[direccion][1]
-
-            if individual.x != tam:  # Only move if they haven't reached the end
-                if 1 <= new_x <= tam and 1 <= new_y <= tam:  # check for collision
+            if individuo.x != tam:
+                if 1 <= nueva_x <= tam and 1 <= nueva_y <= tam:
                     if not any(
-                        other_individual.x == new_x and other_individual.y == new_y
-                        for other_individual in self.individuals + self.finishers
+                        otro_individuo.x == nueva_x and otro_individuo.y == nueva_y
+                        for otro_individuo in self.individuos + self.finalizadores
                     ):
-                        individual.x = new_x
-                        individual.y = new_y
+                        individuo.x = nueva_x
+                        individuo.y = nueva_y
 
-            # Check for goal-reached after potentially moving
-            if individual.x == tam:
-                self.finishers.append(individual)
-                individual.steps = _ + 1
-                individual.fitness = individual.evaluate_fitness(individual.steps)
+            if individuo.x == tam:
+                self.finalizadores.append(individuo)
+                individuo.steps = _ + 1
+                individuo.fitness = individuo.evaluar_fitness(individuo.steps)
             else:
-                remaining_individuals.append(individual)
+                individuos_restantes.append(individuo)
 
-        # print(len(remaining_individuals),"remaining individuals at step",_)
-        self.individuals = remaining_individuals
+        self.individuos = individuos_restantes
 
-    def tournament_but_epic(self):
-        # Select k individuals from the population at random
-        tournament = self.finishers
-        # Sort the selected individuals by fitness (from highest to lowest)
-        tournament.sort(key=lambda x: x.fitness, reverse=True)
-        p = 0.3  # Define your selection probability here
-        # Calculate the cumulative probabilities for the individuals
-        cumulative_probabilities = [
-            p * (1 - p) ** (i - p) for i in range(len(tournament))
-        ]
-        cumulative_probabilities = CromosomaNormalizada(cumulative_probabilities)
-        # Select a random number between 0 and 1
+    def seleccion_torneo(self):
+        torneo = self.finalizadores
+        torneo.sort(key=lambda x: x.fitness, reverse=True)
+        p = 0.3
+        probabilidades_acumuladas = [p * (1 - p) ** (i - p) for i in range(len(torneo))]
+        probabilidades_acumuladas = normalizar_cromosoma(probabilidades_acumuladas)
+        mejor = np.random.choice(torneo, p=probabilidades_acumuladas)
+        return mejor
 
-        # Find the individual whose cumulative probability bracket contains r
-        best = None
-        best = np.random.choice(tournament, p=cumulative_probabilities)
-        return best
+    def cruce(self, padre1, padre2):
+        cruce_binario = generar_cromosoma()
+        cromosoma_hijo1, cromosoma_hijo2 = [], []
 
-    def crossover_but_epic(self, parent1, parent2):
-        crossover_binary = Cromosoma()
-        child1_cromosoma, child2_cromosoma = [], []
-        for i in range(len(crossover_binary)):
-            crossover_binary[i] = int(crossover_binary[i])
-            if i < 1:  # if 0 take from parent 1, else take from parent 2
-                # print(parent1)
-                child1_cromosoma.append(parent1.cromosoma[i])
-                child2_cromosoma.append(parent2.cromosoma[i])
+        for i in range(len(cruce_binario)):
+            cruce_binario[i] = int(cruce_binario[i])
+            if i < 1:
+                cromosoma_hijo1.append(padre1.cromosoma[i])
+                cromosoma_hijo2.append(padre2.cromosoma[i])
             else:
-                child1_cromosoma.append(parent2.cromosoma[i])
-                child2_cromosoma.append(parent1.cromosoma[i])
-        child1_cromosoma, child2_cromosoma = CromosomaNormalizada(
-            child1_cromosoma
-        ), CromosomaNormalizada(child2_cromosoma)
+                cromosoma_hijo1.append(padre2.cromosoma[i])
+                cromosoma_hijo2.append(padre1.cromosoma[i])
 
-        child1 = Individual(
-            None, cromosoma=child1_cromosoma, x=PuntosIniciales(), y=PuntosIniciales()
-        )
-        child2 = Individual(
-            None, cromosoma=child2_cromosoma, x=PuntosIniciales(), y=PuntosIniciales()
-        )
+        cromosoma_hijo1 = normalizar_cromosoma(cromosoma_hijo1)
+        cromosoma_hijo2 = normalizar_cromosoma(cromosoma_hijo2)
 
-        return child1, child2
+        hijo1 = Individuo(cromosoma_hijo1, generar_puntos_iniciales(), generar_puntos_iniciales())
+        hijo2 = Individuo(cromosoma_hijo2, generar_puntos_iniciales(), generar_puntos_iniciales())
 
-    def create_new_generation(self):
-        C = []
-        C = self.finishers
-        # print(len(C))
-        while len(C) < population_size:
-            parent1 = self.tournament_but_epic()  # Binary tournament selection
-            parent2 = self.tournament_but_epic()
-            while parent1 == parent2:
-                parent2 = self.tournament_but_epic()
-            # print('create_new',parent1)
-            child1, child2 = self.crossover_but_epic(parent1, parent2)
-            C.append(child1)
-            C.append(child2)
+        return hijo1, hijo2
 
-        # Generate new starting points for all individuals in the new generation
-        occupied_positions = set()
-        for individual in C:
-            individual.mutate()
-            x, y = PuntosIniciales(), PuntosIniciales()
+    def crear_nueva_generacion(self):
+        nueva_generación = self.finalizadores
 
-            # Generate new positions until we find an unoccupied one
-            while (x, y) in occupied_positions:
-                x, y = PuntosIniciales(), PuntosIniciales()
+        while len(nueva_generación) < tamaño_población:
+            padre1 = self.seleccion_torneo()
+            padre2 = self.seleccion_torneo()
 
-            individual.x = x
-            individual.y = y
-            occupied_positions.add((x, y))
+            while padre1 == padre2:
+                padre2 = self.seleccion_torneo()
 
-        # Replace old population with new generation
-        self.individuals = C
-        self.finishers = []
-        # print(len(self.individuals))
+            hijo1, hijo2 = self.cruce(padre1, padre2)
+            nueva_generación.append(hijo1)
+            nueva_generación.append(hijo2)
 
+        posiciones_ocupadas = set()
 
-population_size = 50
-generations = 10
-mutation_rate = 0.05
+        for individuo in nueva_generación:
+            individuo.mutar()
+            x, y = generar_puntos_iniciales(), generar_puntos_iniciales()
+
+            while (x, y) in posiciones_ocupadas:
+                x, y = generar_puntos_iniciales(), generar_puntos_iniciales()
+
+            individuo.x = x
+            individuo.y = y
+            posiciones_ocupadas.add((x, y))
+
+        self.individuos = nueva_generación
+        self.finalizadores = []
+
+tamaño_población = 50
+generaciones = 10
+tasa_mutacion = 0.05
 tam = 30
-max_steps = int(population_size * 1.5)
+max_steps = int(tamaño_población * 1.5)
+finalizadores_por_generación = [0] * generaciones
 
-P = Population(population_size)
-# print(P.individuals[1].cromosoma," : ",P.individuals[1].color)
-# plot
+población = Poblacion(tamaño_población)
+
 fig = plt.figure()
 ax = fig.add_subplot(111)
-plt.xlabel("x-axis")
-plt.ylabel("y-axis")
-plt.ion()
-sc = ax.scatter(
-    [individual.x for individual in P.individuals],
-    [individual.y for individual in P.individuals],
-    c=[individual.color for individual in P.individuals],
-    marker="s",
-    s=100,
-)
+plt.xlabel("Eje x")
+plt.ylabel("Eje y")
 plt.xlim(0, tam)
 plt.ylim(0, tam)
-plt.draw()
 
-for i in range(generations):
+
+plt.ion()
+
+for i in range(1, generaciones + 1):
+    ax.set_title(f"Generación: {i}")
+
     for _ in range(max_steps):
-        P.move()
-        # Update the positions drawn
-        all_individuals = P.individuals + P.finishers
-        sc.set_offsets([[individual.x, individual.y] for individual in all_individuals])
-        sc.set_facecolor([individual.color for individual in all_individuals])
-        # Redraw the plot
-        fig.canvas.draw_idle()
-        plt.pause(0.01)
+        población.mover()
 
-    P.create_new_generation()
-    all_individuals = P.individuals
-    sc.set_offsets([[individual.x, individual.y] for individual in all_individuals])
-    sc.set_facecolor([individual.color for individual in all_individuals])
-    fig.canvas.draw_idle()
-    # Add title to figure with current generation
-    plt.title(f"Generación: {i+1}")
-    plt.pause(2)
+    if i > 1:
+        sc.remove()  # Borra los puntos anteriores
 
-# P.create_new_generation
+    todos_los_individuos = población.individuos + población.finalizadores
+
+    sc = ax.scatter(
+        [individuo.x for individuo in todos_los_individuos],
+        [individuo.y for individuo in todos_los_individuos],
+        c=[individuo.color for individuo in todos_los_individuos],
+        marker='s',
+        s=50
+    )
+
+    plt.draw()
+    plt.pause(0.7)
+
+    finalizadores_por_generación[i - 1] = len(población.finalizadores)
+
+    población.crear_nueva_generacion()
+
+plt.ioff()
+
+plt.figure()
+plt.plot(range(1, generaciones + 1), finalizadores_por_generación, marker="o")
+plt.xlabel("Generación")
+plt.ylabel("Número de Finalizadores")
+plt.title("Número de Finalizadores por Generación")
+plt.show()
+
+
 plt.waitforbuttonpress()
+plt.show(block=True)
